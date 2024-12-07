@@ -1,0 +1,296 @@
+﻿@page "/depreciation"
+@rendermode InteractiveServer
+
+@using Competency5.Data
+@using Competency5.Data.DAL
+@using Entities.Models
+@using Microsoft.EntityFrameworkCore
+@using WebAssemblyMan
+@inject AssetsPageDAL dal
+@inject NavigationManager Nav
+
+<!-- Head content for graph -->
+<HeadContent>
+	<link href="_content/LineChart/styles.css" rel="stylesheet" />
+</HeadContent>
+
+
+<h3 class="text-center mt-1 mb-3 text-decoration-underline">Asset depreciation tracker</h3>
+
+<div class="container">
+    
+    <!-- Assets list -->
+    <div class="border border-dark border-1 rounded mb-3">
+        <!-- Add new -->
+        <button type="button" class="btn btn-success mx-2 mt-3" @onclick="OnAddAsset">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2" />
+            </svg>
+            Add new asset
+        </button>
+
+        <!-- The List -->
+        @if(assets is null)
+        {
+            <div class="border border-info border-3 rounded text-center fs-3 text-info fw-bold p-3 m-2">
+                Loading, please wait...
+            </div>
+        } 
+        else if(assets.Count == 0)
+        {
+            <div class="border border-danger border-3 rounded text-center fs-3 text-danger fw-bold p-3 m-2">
+                No items available to list.
+            </div>
+        }
+        else
+        {
+            isGrey = false;
+            // Display Assets
+            <div class="border border-dark border-1 rounded text-dark mx-2 mt-2 mb-3">
+                @foreach (var item in assets)
+                {
+                    <div class="d-flex p-2 @(isGrey ? "grey-bg " : "")">
+						<span class="align-middle my-auto"><b>@item.AssetName</b></span>
+
+                        <span class="ms-auto my-auto">
+                            <!-- Info Button -->
+                            <button type="button" class="btn btn-outline-primary" @onclick="()=>OnViewAsset(item)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"></path>
+                                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"></path>
+                                </svg>
+                                Details
+                            </button>
+                            <!-- Edit button -->
+                            <button type="button" class="btn btn-outline-primary" @onclick="()=>OnEditAsset(item)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                                    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"></path>
+                                    <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"></path>
+                                </svg>
+                                Edit
+                            </button>
+							<!-- Delete button -->
+                            <button type="button" class="btn btn-outline-danger" @onclick="()=>OnRemoveAssetAsync(item)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16">
+                                    <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"></path>
+                                </svg>
+                                Remove
+							</button>
+						</span>
+                    </div>
+
+                    // Toggle grey-ness
+                    if(isGrey){ isGrey = false; } else { isGrey = true; }
+                }
+            </div>
+
+            
+            // Table and graph
+            <div class="container">
+                <div class="row">
+
+                    <div class="col mx-4">
+                        <table class="table border border-dark">
+                            <thead class="text-center table-info">
+                                <tr>
+                                    <th scope="col">Year</th>
+                                    <th scope="col">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int index = 0; index < invYearlyValue.Count; index++)
+                                {
+                                    <tr>
+                                        <td>@yearsArray[index]</td>
+                                        <td class="table-active">@invYearlyValue[index].ToString("C2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Graph -->
+                    <div class="col-md-4 me-3">
+                        <LineChart 
+					        InputSeries1="@graphData"  
+					        XAxisLabels="@graphXAxisLabels" 
+					        InputLabels="@graphKey"> </LineChart>
+                    </div>
+                </div>
+            </div>
+            
+        }
+    </div>
+</div>
+
+@code {
+    // Asset list
+    private List<Asset> assets;
+    // Total value Dict
+    Dictionary<int, double> invYearlyValue = new Dictionary<int, double>();
+    // Year array
+    private int[] yearsArray;
+    // Vars
+    private bool isGrey = false;
+    private DateTime minDate = DateTime.MaxValue;
+    private DateTime maxDate = DateTime.MinValue;
+    // Graph vars
+    private string graphData = "30,70,42,50,3,55,35,22";
+    private string graphXAxisLabels = "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep";
+    private string graphKey = "Line";
+
+    protected async override Task OnInitializedAsync()
+    {
+        assets = await dal.GetAllAsync();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (assets != null)
+        {
+            FindMinMaxDates();
+            CalcInvValues();
+            DisplayGraph();
+            StateHasChanged();
+        }
+    }
+
+    // Find min and max dates
+    private void FindMinMaxDates()
+    {
+        foreach (Asset item in assets)
+        {
+            // Max
+            if (item.AddedToInventory > maxDate)
+            {
+                maxDate = item.AddedToInventory;
+            }
+            if (item.RemovedFromInventory > maxDate)
+            {
+                maxDate = item.RemovedFromInventory;
+            }
+            //Min
+            if (item.AddedToInventory < minDate)
+            {
+                minDate = item.AddedToInventory;
+            }
+            if (item.RemovedFromInventory < minDate)
+            {
+                minDate = item.RemovedFromInventory;
+            }
+        }
+    }
+
+    // get inventory data
+    private void CalcInvValues()
+    {
+        // Local vars
+        int invLifespan = 1;
+        double totalInitialCost = 0.0;
+
+        // Get iventory lifespan
+        TimeSpan diff = maxDate.Subtract(minDate);
+        if (diff.Days < 365) {
+            invLifespan = 1;
+        } else {
+            invLifespan = diff.Days / 365;
+        }
+
+        // get list of years
+        yearsArray = new int[invLifespan + 1];
+        for (int index = 0; index <= invLifespan; index++)
+        {
+            yearsArray[index] = (minDate.Year + index);
+        }
+
+        double rollingTotal = totalInitialCost;
+        int currentYear = minDate.Year;
+        for (int index = 0; index <= invLifespan; index++)
+        {
+            // if added to inventory, add cost
+            foreach (Asset item in assets)
+            {
+                if (item.AddedToInventory.Year == currentYear)
+                {
+                    rollingTotal += item.InitalCost;
+                }
+            }
+
+            invYearlyValue.TryAdd(index, rollingTotal);
+            currentYear++; // Increment
+
+            // remove annual dep. for next year to make things easy
+            foreach (Asset item in assets)
+            {
+                if (item.AddedToInventory.Year <= currentYear && item.RemovedFromInventory.Year >= currentYear)
+                {
+                    rollingTotal -= CalculateAssetAnnualDep(item);
+                }
+            }
+        }
+    }
+
+    // Depreciation calculation
+    private double CalculateAssetAnnualDep(Asset assetIn)
+    {
+        // Vars
+        double anualDepreciation = 0.0;
+        int lifespan = 0;
+
+        // get difference between the two dates
+        DateTime enterDate = assetIn.AddedToInventory;
+        DateTime exitDate = assetIn.RemovedFromInventory;
+        TimeSpan diff = exitDate.Subtract(enterDate);
+
+        // Convert to years
+        if (diff.Days < 365)
+        {
+            lifespan = 1;
+        }
+        else
+        {
+            lifespan = diff.Days / 365;
+        }
+
+        // Calculate anual depreciation
+        double depreciableCost = assetIn.InitalCost - assetIn.SalvageValue;
+        double depreciationRate = 1d / lifespan;
+        anualDepreciation = depreciationRate * depreciableCost;
+
+        // Return
+        return anualDepreciation;
+    }
+
+    // Display the graph
+    private void DisplayGraph()
+    {
+        // Set key
+        graphKey = "Total inventory value";
+
+        // Arrays
+        int[] yearArr = new int[invYearlyValue.Count];
+        double[] valArr = new double[invYearlyValue.Count];
+
+        // Fill arrays
+        for (int index = 0; index < invYearlyValue.Count; index++)
+        {
+            valArr[index] = invYearlyValue[index];
+            yearArr[index] = index;
+        }
+
+        graphXAxisLabels = string.Join(",", yearArr);
+        graphData = string.Join(",", valArr);
+    }
+
+    // Add
+    private void OnAddAsset() => Nav.NavigateTo("depreciation/asset");
+    // Details
+    private void OnViewAsset(Asset assetToView) => Nav.NavigateTo($"depreciation/details/{assetToView.ID}");
+    // Edit
+    private void OnEditAsset(Asset assetToEdit) => Nav.NavigateTo($"depreciation/asset/{assetToEdit.ID}");
+    // Remove
+    private async Task OnRemoveAssetAsync(Asset assetToRemove){
+        assets?.Remove(assetToRemove);
+        await dal.RemoveAsync(assetToRemove);
+    }
+}

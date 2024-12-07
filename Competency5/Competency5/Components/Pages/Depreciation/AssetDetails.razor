@@ -1,0 +1,217 @@
+﻿@page "/depreciation/details/{Id}"
+@rendermode InteractiveServer
+
+@inject AssetsPageDAL dal
+@inject NavigationManager Nav
+
+@using WebAssemblyMan
+@using System.Collections.Generic;
+
+<!-- Head content for graph -->
+<HeadContent>
+	<link href="_content/LineChart/styles.css" rel="stylesheet" />
+</HeadContent>
+
+@if (asset is null)
+{
+	<h2 class="text-info text-center p-3 border border-2 border-info">
+		Loading asset...
+	</h2>
+} 
+else // After asset has loaded
+{
+	<h3 class="d-flex p-2 border-bottom border-secondary-subtle">
+		@(asset.AssetName)'s details:
+		<button type="button" class="btn btn-outline-danger ms-auto my-auto" @onclick="OnReturn">
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-return-left" viewBox="0 0 16 16">
+				<path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"></path>
+			</svg>
+			Return
+		</button>
+	</h3>
+
+	<div class="container">
+		<div class="row">
+
+			<!-- Asset information -->
+			<div class="col">
+				<!-- Info -->
+				<div class="container mb-3 mt-3">
+					<div class="row d-flex">
+						<div class="col text-end">
+							<h5>Annual depreciation: </h5>
+							<h5>Initial cost:</h5>
+							<h5>Salvage value:</h5>
+							<h5>Lifespan:</h5>
+							<h5>Added to inventory:</h5>
+							<h5>Removed from inventory:</h5>
+						</div>
+						<div class="col">
+							<h5>@(anualDepreciation.ToString("C2")) / Year</h5>
+							<h5>@asset.InitalCost.ToString("C2")</h5>
+							<h5>@asset.SalvageValue.ToString("C2")</h5>
+							<h5>@lifespan Years</h5>
+							<h5>@asset.AddedToInventory.ToString("d")</h5>
+							<h5>@asset.RemovedFromInventory.ToString("d")</h5>
+						</div>
+					</div>
+				</div>
+
+				<!-- Table -->
+				<table class="table">
+					<thead class="table-info">
+						<tr>
+							<th scope="col">Year</th>
+							<th scope="col">Value</th>
+						</tr>
+					</thead>
+					<tbody>
+						@for (int index = 0; index < valByYear.Count; index++)
+						{
+							<tr>
+								<td>@yearsArray[index]</td>
+								<td>@valByYear[index].ToString("C2")</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+
+			<!-- Graph -->
+			<div class="col-md-4">
+				<h5 class="text-center"></h5>
+				<LineChart 
+					InputSeries1="@graphData"  
+					XAxisLabels="@graphXAxisLabels" 
+					InputLabels="@graphKey"> </LineChart>
+
+				<!-- Controls -->
+				<div class="border  border-dark border-1 rounded text-dark p-3">
+					<label for="StartDate">Start date: Year @yearStartOffset</label>
+					<input id="StartDate" type="range" class="form-range" step="1" min="0" max="@(lifespan - 1)" @bind="yearStartOffset" />
+
+					<label for="EndDate">End date: Year @(lifespan - yearEndOffset)</label>
+					<input id="EndDate" type="range" class="form-range reverse-direction" step="1" min="0" max="@(lifespan - 1)" @bind="yearEndOffset" />
+
+					<button class="btn btn-outline-success" @onclick="ValidateGraphRange">Change Graph</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+
+@code {
+	[Parameter]
+	public string? Id { get; set; }
+
+	// The asset
+	private Asset? asset = null;
+
+	// Values Dict
+	Dictionary<int,double> valByYear = new Dictionary<int,double>();
+	// Year array
+	private int[] yearsArray;
+
+	// Vars
+	private double anualDepreciation = 0.0;
+	private int lifespan = 0;
+
+	// Graph vars
+	private string graphData = "30,70,42,50,3,55,35,22";
+	private string graphXAxisLabels = "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep";
+	private string graphKey = "Line";
+	private int yearStartOffset = 0;
+	private int yearEndOffset = 0;
+
+	// Initialization
+	protected override async Task OnInitializedAsync()
+	{
+		var guid = Guid.Parse(Id);
+		asset = await dal.GetSpecifcAsync(guid);
+
+		if (asset != null) 
+		{
+			CalculateInfo();
+			DisplayGraph();
+
+			//yearEndOffset = lifespan;
+		}
+	}
+
+	// Functions
+	private void CalculateInfo()
+	{
+		// get difference between the two dates
+		DateTime enterDate = asset.AddedToInventory;
+		DateTime exitDate = asset.RemovedFromInventory;
+		TimeSpan diff = exitDate.Subtract(enterDate);
+
+		// Convert to years
+		if (diff.Days < 365)
+		{
+			lifespan = 1;
+		} 
+		else
+		{
+			lifespan = diff.Days / 365;
+		}
+
+		// get list of years
+		yearsArray = new int[lifespan + 1];
+		for (int index = 0; index <= lifespan; index++)
+		{
+			yearsArray[index] = (enterDate.Year + index);
+		}
+
+		// Calculate anual depreciation
+		double depreciableCost = asset.InitalCost - asset.SalvageValue;
+		double depreciationRate = 1d / lifespan;
+		anualDepreciation = depreciationRate * depreciableCost;
+
+		// Fill valByYear
+		var rollingTotal = asset.InitalCost;
+		for (int index = 0; index <= lifespan; index++)
+		{	
+			valByYear.Add(index, rollingTotal);
+			rollingTotal -= anualDepreciation;
+		}
+	}
+
+	private void DisplayGraph()
+	{
+		// Set key
+		graphKey = asset.AssetName;
+
+		// Arrays
+		int[] yearArr = new int[(valByYear.Count - (yearStartOffset + yearEndOffset))];
+		double[] valArr = new double[(valByYear.Count - (yearStartOffset + yearEndOffset))];
+
+		// Fill arrays
+		for (int index = (0 + yearStartOffset); index < (valByYear.Count - yearEndOffset); index++)
+		{
+			valArr[index - yearStartOffset] = valByYear[index];
+			yearArr[index - yearStartOffset] = index;
+		}
+
+		graphXAxisLabels = string.Join(",", yearArr);
+		graphData = string.Join(",", valArr);
+	}
+
+	private void ValidateGraphRange()
+	{
+		if (yearStartOffset < (lifespan - yearEndOffset))
+		{
+			DisplayGraph();
+			StateHasChanged();
+		}
+		else
+		{
+			yearStartOffset = 0;
+			yearEndOffset = 0;
+		}
+	}
+
+	// leave
+	private void OnReturn() => Nav.NavigateTo("depreciation"); 
+}

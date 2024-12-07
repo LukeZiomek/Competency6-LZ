@@ -1,0 +1,231 @@
+﻿@page "/"
+@rendermode InteractiveWebAssembly
+
+@inject IContactsDAL _dal;
+@inject NavigationManager Nav
+
+@using Entities.Interfaces
+@using Entities.Models
+
+<PageTitle>Services</PageTitle>
+
+<h3 class="text-center">Services we offer: </h3>
+
+<div class="container">
+
+    <!-- Financial advice -->
+    <div class="card mb-3">
+        <div class="row g-0">
+            <div class="col-md-4">
+                <img src="/images/Pexels_Stock_Ticker_Monitor.jpg" class="img-fluid rounded-start" alt="Photo of a monitor displaying a stock ticker">
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <h5 class="card-title">Financial advice</h5>
+                    <p class="card-text">
+                        E&D provides world class financial advice! 
+                        Wondering how to secure the best loan rates? 
+                        Wanting to "Optimize" your tax burden? 
+                        We are the corporation for you!
+                    </p>
+                    <p class="card-text"><small class="text-body-secondary">Photo by energepic.com from <a href="https://www.pexels.com/photo/close-up-photo-of-monitor-159888/">Pexels</a></small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frieght forwarding -->
+    <div class="card mb-3">
+        <div class="row g-0">
+            <div class="col-md-4">
+                <img src="/images/Pexels_Shipping_Containers.jpeg" class="img-fluid rounded-start" alt="Photo of cargo containers stacked in a port">
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <h5 class="card-title">Frieght forwarding services</h5>
+                    <p class="card-text">
+                        E&D provides world class freight forwarding services. 
+                        Never worry about securing payment again! 
+                        E&D ensures that your payment is secured before you ship your goods.
+                    </p>
+                    <p class="card-text"><small class="text-body-secondary">Photo by Chanaka from <a href="https://www.pexels.com/photo/cargo-container-lot-906494/">Pexels</a></small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial advice -->
+    <div class="card mb-3">
+        <div class="row g-0">
+            <div class="col-md-4">
+                <img src="images/Pexels_Inventory.jpg" class="img-fluid rounded-start" alt="Photo of a Man Scanning Products in a Warehouse">
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <h5 class="card-title">Inventory Accounting</h5>
+                    <p class="card-text">
+                        E&D will help you manage your inventory with our amazing world-class depreciation calculator application!
+                    </p>
+                    <p class="card-text"><small class="text-body-secondary">Photo by Tiger Lily from <a href="https://www.pexels.com/photo/photo-of-a-man-scanning-products-in-a-warehouse-4483942/">Pexels</a></small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="border border border-warning-subtle rounded p-3 mt-2 mb-3">
+        <h5 class="mt-2 mb-3 fw-bold">Contact: </h5>
+        <EditForm Model="contact" OnSubmit="OnSubmitAsync" FormName="contactForm">
+            <DataAnnotationsValidator/>
+
+            <div class="form-group mb-3">
+                <label for="firstName">Frist name: </label>
+                <InputText id="firstName" @bind-Value=contact.FirstName class="form-control" />
+                <ValidationMessage For="() => contact.FirstName"/>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="lastName">Last name: </label>
+                <InputText id="lastName" @bind-Value=contact.LastName class="form-control" />
+                <ValidationMessage For="() => contact.LastName" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="companyName">Company name: </label>
+                <InputText id="companyName" @bind-Value=contact.CompanyName class="form-control" />
+                <ValidationMessage For="() => contact.CompanyName" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="emailAddress">Email address: </label>
+                <InputText id="emailAddress" @bind-Value=contact.EmailAddress class="form-control" />
+                <ValidationMessage For="() => contact.EmailAddress" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="phoneNumber">Phone number: </label>
+                <InputText id="phoneNumber" @bind-Value=contact.PhoneNumber class="form-control" />
+                <ValidationMessage For="() => contact.PhoneNumber" />
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="website">Website URL: </label>
+                <InputText id="website" @bind-Value=contact.Website class="form-control" />
+                <ValidationMessage For="() => contact.Website" />
+            </div>
+
+            <div class="form-group mb-3" id="interestsGroup">
+                <label for="interestsGroup">Please select what you are interested in: </label>
+
+                <div class="form-check">
+                    <InputCheckbox id="financialInterest" @bind-Value="contact.FinancialInterest" class="form-check-input" />
+                    <label for="financialInterest" class="form-check-label">Financial advice</label>
+                </div>
+
+                <div class="form-check">
+                    <InputCheckbox id="shippingInterest" @bind-Value="contact.ShippingInterest" class="form-check-input"/>
+                    <label for="shippingInterest" class="form-check-label">Frieght forwarding services</label>
+                </div>
+
+                <div class="form-check">
+                    <InputCheckbox id="invAccountingInterest" @bind-Value="contact.InvAccountingInterest" class="form-check-input"/>
+                    <label for="invAccountingInterest" class="form-check-label">Inventory accounting</label>
+                </div>
+            </div>
+
+            <!-- Send button -->
+            <button type="submit" class="btn btn-success" disabled="@(!isConnected)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope-fill" style="vertical-align: middle; margin-top: -0.125em" viewBox="0 0 16 16">
+                    <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z" />
+                </svg>
+                Send information
+            </button>
+            
+        </EditForm>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="border border-2 border-warning rounded p-3 mt-2 mb-3">
+                <h5 class="text-warning d-flex p-2">
+                    Contacts: 
+                    <label for="sortByOpen" class=" ms-auto my-auto">Sort by open: <input id="SortByPoen" type="checkbox" checked="@openOnly" @bind-value="openOnly" @bind-value:after="OpenToggle" /></label>
+                </h5>
+                <hr />
+
+                @if (sentContacts != null) {
+                    // List contacts
+                    @foreach (Contact item in displayList) {
+                        <div class="d-flex p-2">
+                            <span class="align-middle my-auto"><b>@item.FirstName @item.LastName</b> from <b>@item.CompanyName</b></span>
+
+                            <span class="ms-auto my-auto">
+                                <button type="button" class="btn btn-outline-primary" @onclick="()=>ViewContact(item.ID)"> View</button>
+                            </span>
+                        </div>
+                        <hr />
+                    }
+
+                    <p class="text-danger text-center mt-2 mb-0">End of contacts</p>
+                } 
+                else // Loading
+                {
+                    <p class="text-warning">Loading...</p>
+                }
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    // Contacts lists
+    private List<Contact> sentContacts;
+    private List<Contact> displayList;
+    // New contact object
+    private Contact contact = new Contact();
+    // Vars
+    private bool isConnected = false;
+    private bool openOnly = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        sentContacts = await _dal.GetAllAsync();
+        displayList = sentContacts.ToList();
+        isConnected = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        sentContacts = await _dal.GetAllAsync();
+    }
+
+    private async Task OnSubmitAsync()
+    {
+        contact.SubmittedDate = DateTime.UtcNow;
+        contact.RespondedTo = false;
+
+        await _dal.AddAsync(contact);
+
+        StateHasChanged();
+    }
+
+    private void ViewContact(Guid id)
+    {
+        Nav.NavigateTo($"/contact/{id}");
+    }
+
+    private void OpenToggle()
+    {
+        //openOnly = !openOnly;
+
+        if (openOnly)
+        {
+            displayList = sentContacts.Where(c => c.RespondedTo == false).ToList();
+        }
+        else
+        {
+            displayList = sentContacts.ToList();
+        }
+
+        StateHasChanged();
+    }
+}

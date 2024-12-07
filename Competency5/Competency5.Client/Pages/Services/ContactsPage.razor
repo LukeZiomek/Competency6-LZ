@@ -1,0 +1,143 @@
+﻿@page "/contact/{Id}"
+@rendermode InteractiveWebAssembly
+@attribute [Authorize]
+
+@using Entities.Interfaces
+@using Entities.Models
+@using Microsoft.AspNetCore.Authorization
+
+@inject IContactsDAL _dal;
+@inject NavigationManager Nav
+
+<h3 class="d-flex p-2 border-bottom border-secondary-subtle">
+	Contact:
+	<button type="button" class="btn btn-outline-danger ms-auto my-auto" @onclick="OnReturn">
+		<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-return-left" viewBox="0 0 16 16">
+			<path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"></path>
+		</svg>
+		Home
+	</button>
+</h3>
+
+<AuthorizeView>
+	<Authorized>
+		@if(contact != null) {
+			<div class="border border-dark border-1 rounded m-3">
+				<div class="mx-5 my-3 center border rounded">
+					<table class="table table-sm mb-0">
+						<tbody>
+							<tr>
+								<td class="text-end pe-4">First Name:</td>
+								<td>@contact.FirstName</td>
+							</tr>
+							<tr>
+								<td class="text-end pe-4">Last Name:</td>
+								<td>@contact.LastName</td>
+							</tr>
+							<tr>
+								<td class="text-end pe-4">Company Name:</td>
+								<td>@contact.CompanyName</td>
+							</tr>
+							<tr>
+								<td class="text-end pe-4">E-Mail:</td>
+								<td>@contact.EmailAddress</td>
+							</tr>
+							<tr>
+								<td class="text-end pe-4">Phone Number:</td>
+								<td>@contact.PhoneNumber</td>
+							</tr>
+							<tr>
+								<td class="text-end pe-4">Website URL:</td>
+								<td>@contact.Website</td>
+							</tr>
+							<tr>
+								<td class="text-end pe-4">Submit date:</td>
+								<td>@contact.SubmittedDate.ToString("f")</td>
+							</tr>
+							<tr>
+								<td class="text-end pe-4">Respond date:</td>
+								<td class="@(contact.respondedDate == null ? "text-danger" : "")">@(contact.respondedDate != null ? contact.respondedDate.Value.ToString("f") : "Not responded to")</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<div class="d-flex justify-content-left ms-5">
+					<ul>
+						<li class="@(contact.FinancialInterest ? "text-success" : "text-danger")">@(contact.FinancialInterest ? "Financial interest" : "No financial interest")</li>
+						<li class="@(contact.ShippingInterest ? "text-success" : "text-danger")">@(contact.ShippingInterest ? "Shipping interest" : "No shipping interest")</li>
+						<li class="@(contact.InvAccountingInterest ? "text-success" : "text-danger")">@(contact.InvAccountingInterest ? "Inventory accounting interest" : "No Inventory accounting interest")</li>
+					</ul>
+				</div>
+
+				<div class="mx-5">
+					<label for="respondDT">Response date: </label>
+					<input id="respondDT" type="date" class="form-control" @bind-value="respondDate" />
+				</div>
+
+				<div class="mx-5">
+					<label for="respondCheck">Responded to contact?</label>
+					<input class="" id="respondCheck" type="checkbox" checked="@contact.RespondedTo" @bind-value="respondedTo" @bind-value:after="RespondToggle" />
+				</div>
+
+				<textarea class="form-control mx-auto w-75 my-2 center" rows="5" @bind="remarks" />
+				<button type="button" class="btn btn-success mx-5 my-3" @onclick="RemarksSave">Save remarks</button>
+			</div>
+		} 
+		else // loading message
+		{
+			<div class="" >Loading...</div>
+		}
+	</Authorized>
+
+	<NotAuthorized>
+		<h3 class="text-danger text-center">You are not permitted view this page</h3>
+	</NotAuthorized>
+</AuthorizeView>
+
+@code {
+	[Parameter]
+	public string Id { get; set; }
+
+	// Contact loaded
+	private Contact contact = null;
+	// vars
+	private DateTime respondDate = DateTime.UtcNow;
+	private bool respondedTo;
+	private string remarks;
+
+	// Init
+	protected async override Task OnInitializedAsync()
+	{
+		contact = await _dal.GetByIdAsync(Guid.Parse(Id));
+
+		respondedTo = contact.RespondedTo;
+		remarks = contact.Remarks;
+	}
+
+	private async Task RespondToggle()
+	{
+		// Date toggle
+		if (contact.respondedDate is null)
+		{
+			contact.respondedDate = respondDate;
+		} 
+		else // if there is a date
+		{
+			contact.respondedDate = null;
+		}
+
+		contact.RespondedTo = respondedTo;
+
+		await _dal.UpdateAsync(contact);
+	}
+
+	private async Task RemarksSave()
+	{
+		contact.Remarks = remarks;
+		
+		await _dal.UpdateAsync(contact);
+	}
+
+	private void OnReturn() => Nav.NavigateTo("/");
+}

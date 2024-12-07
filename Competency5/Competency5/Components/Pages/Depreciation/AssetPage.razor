@@ -1,0 +1,211 @@
+﻿@page "/depreciation/asset"
+@page "/depreciation/asset/{Id}"
+@rendermode InteractiveServer
+
+@inject AssetsPageDAL dal
+@inject NavigationManager Nav
+
+<h3 class="text-center">Add an asset</h3>
+
+@if(asset is null)
+{
+    <h4 class="border border-info border-1 rounded text-info m-2 p-3">
+        Loading asset...
+    </h4>
+}
+else // Asset is loaded
+{
+    <form class="border border-secondary border-1 rounded text-dark m-2 p-3">
+        <label for="name">Asset Name: <span class="text-danger">*</span></label>
+        <input class="form-control" type="text" name="Name" id="name" @bind="asset.AssetName" />
+
+        <label class="mt-3" for="initial">Initial cost: <span class="text-danger">*</span></label>
+        <input class="form-control" type="number" name="InitialCost" id="initial" @bind="asset.InitalCost" />
+
+        <label class="mt-3" for="salvage">Salvage value: <span class="text-danger">*</span></label>
+        <input class="form-control" type="number" name="SalvageValue" id="salvage" @bind="asset.SalvageValue" />
+
+        <label class="mt-3" for="added">Date added to inventory: <span class="text-danger">*</span></label>
+        <input class="form-control" type="date" name="AddedToInventory" id="added" @bind="asset.AddedToInventory" />
+
+        <label class="mt-3" for="removed">Date removed from inventory: <span class="text-danger">*</span></label>
+        <input class="form-control" type="date" name="RemovedFromInventory" id="removed" @bind="asset.RemovedFromInventory" />
+
+        <!-- Message box for errors or whatever -->
+        @if (showMsg)
+        {
+            <div class="border border-2 border-danger text-danger rounded m-3 p-2">
+                <h5>Error: </h5>
+                <ul>
+                    @foreach (string error in validationMsgs)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <!-- Add new -->
+        <button type="button" class="btn btn-success mt-3" @onclick="OnSubmitAsync">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check2" viewBox="0 0 16 16">
+                <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0" />
+            </svg>
+            Submit
+        </button>
+        <!-- Cancel edit/add -->
+        <button type="button" class="btn btn-danger mt-3 ms-2" @onclick="OnCancel">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" />
+            </svg>
+            Cancel
+        </button>
+        <div class="text-danger form-text"> * is required</div>
+
+        
+    </form>
+}
+
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    // New asset
+    private Asset? asset;
+
+    // Var
+    private bool showMsg = false;
+    // error list
+    private List<string> validationMsgs = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is null) {
+            asset = new Asset();
+        } else {
+            var guid = Guid.Parse(Id);
+            asset = await dal.GetSpecifcAsync(guid);
+        }
+
+    }
+
+    private async Task OnSubmitAsync()
+    {
+        // Reset
+        showMsg = false;
+        validationMsgs.Clear();
+
+        if(asset != null) {
+            if (AssetIsValid())
+            {
+                if (Id is null) // Save new
+                {
+                    await dal.AddAsync(asset);
+                }
+                else // Save edited
+                {
+                    await dal.UpdateAsync(asset);
+                }
+
+                Nav.NavigateTo("depreciation"); // leave
+            } 
+            else // Show errors
+            {
+                showMsg = true;
+            }
+            
+        } 
+        else // Show errors
+        {
+            showMsg = true;
+            validationMsgs.Add("Asset was null!");
+        }
+
+    }
+
+    private bool AssetIsValid()
+    {
+        bool isValid = true;
+
+        // Name validation
+        if (String.IsNullOrWhiteSpace(asset.AssetName))
+        {
+            isValid = false;
+            validationMsgs.Add("Name cannot be empty.");
+        }
+
+        // Validate initial value
+        if (asset.InitalCost <= 0)
+        {
+            isValid = false;
+            validationMsgs.Add("Initial cost cannot be 0 or negative.");
+        }
+        else if (asset.InitalCost <= asset.SalvageValue)
+        {
+            isValid = false;
+            validationMsgs.Add("Initial cost cannot be greater than or equal to salvage value.");
+        }
+        else if (asset.InitalCost >= double.MaxValue)
+        {
+            isValid = false;
+            validationMsgs.Add("Initial cost is too large.");
+        }
+
+        // Validate initial value
+        if (asset.SalvageValue <= 0)
+        {
+            isValid = false;
+            validationMsgs.Add("Salvage value cannot be 0 or negative.");
+        }
+        else if (asset.SalvageValue >= asset.InitalCost)
+        {
+            isValid = false;
+            validationMsgs.Add("Salvage value cannot be greater than or equal to Initial cost.");
+        }
+        else if (asset.SalvageValue > double.MaxValue)
+        {
+            isValid = false;
+            validationMsgs.Add("Salvage value is too large.");
+        }
+
+        // Validate start date
+        if (asset.AddedToInventory >= asset.RemovedFromInventory)
+        {
+            isValid = false;
+            validationMsgs.Add("Date added to inventory cannot be greater than or equal to Date removed.");
+        }
+        else if (asset.AddedToInventory < DateTime.MinValue)
+        {
+            isValid = false;
+            validationMsgs.Add("Date added to inventory too small.");
+        }
+        else if (asset.AddedToInventory > DateTime.MaxValue)
+        {
+            isValid = false;
+            validationMsgs.Add("Date added to inventory too large.");
+        }
+
+        // Validate end date
+        if (asset.RemovedFromInventory <= asset.AddedToInventory)
+        {
+            isValid = false;
+            validationMsgs.Add("Date removed from inventory cannot be greater than or equal to Date added.");
+        }
+        else if (asset.RemovedFromInventory < DateTime.MinValue)
+        {
+            isValid = false;
+            validationMsgs.Add("Date removed from inventory too small.");
+        }
+        else if (asset.RemovedFromInventory > DateTime.MaxValue)
+        {
+            isValid = false;
+            validationMsgs.Add("Date removed from inventory too large.");
+        }
+
+        return isValid;
+    }
+
+    private void OnCancel() => Nav.NavigateTo("depreciation"); // leave
+}
+
+

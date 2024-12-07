@@ -1,0 +1,87 @@
+﻿@page "/calc"
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Investment Calculator</PageTitle>
+
+<h1 class="text-decoration-underline">Investment Calculator</h1>
+
+@if (isSubmitted) {
+    <!-- ### Results ### -->
+    <table class="ms-2">
+        <!-- Futre value -->
+        <tr>
+            <td class="fs-4 fw-bold pe-3 text-end">Future Value:</td>
+			<td class="fs-4 fw-bold">@(Math.Round(calculator.FutureValue, 2).ToString("C2"))</td>
+        </tr>
+        <!-- Principal -->
+        <tr>
+            <td class="fs-5 pe-3 text-end">Principal:</td>
+            <td class="fs-5">@Math.Round(calculator.Principal, 2).ToString("C2")</td>
+        </tr>
+        <!-- Interest -->
+        <tr>
+            <td class="fs-5 pe-3 text-end">Interest:</td>
+            <td class="fs-5">@((calculator.Interest / 100).ToString("P2"))</td>
+        </tr>
+        <!-- Years -->
+        <tr>
+            <td class="fs-5 pe-3 text-end">Years:</td>
+			<td class="fs-5">@calculator.Years</td>
+        </tr>
+        <!-- Cpm -->
+        <tr>
+            <td class="fs-5 pe-3 text-end">Compounds per year:</td>
+			<td class="fs-5">@calculator.CmpPerYear</td>
+        </tr>
+    </table>
+
+    <!-- Back button -->
+    <br />
+    <button class="btn btn-outline-danger ms-2" @onclick="Back">Return</button>
+
+} else {
+    <!-- ### Input ### -->
+    <EditForm FormName="InvestCalc" Model="@calculator" OnValidSubmit="@CalculateInvestment">
+        <DataAnnotationsValidator/>
+        <ValidationSummary class="border border-2 border-danger rounded py-2 mt-3" />
+        <!-- Principal -->
+		<div class="form-group mb-2">
+            <label for="principal">Principal:</label>
+            <InputNumber @bind-Value=calculator.Principal class="form-control" id="principal" />
+            <ValidationMessage For="() => calculator.Principal" />
+        </div>
+        <!-- Interest -->
+		<div class="form-group mb-2">
+            <label for="interest">Interest Rate (%):</label>
+            <InputNumber @bind-Value=calculator.Interest class="form-control" id="interest" />
+            <ValidationMessage For="() => calculator.Interest" />
+        </div>
+        <!-- Years -->
+		<div class="form-group mb-2">
+            <label for="yeaars">Years:</label>
+            <InputNumber @bind-Value=calculator.Years class="form-control" id="years" />
+            <ValidationMessage For="() => calculator.Years" />
+        </div>
+        <!-- CmpPerYear -->
+		<div class="form-group mb-2">
+            <label for="CmpPerYear">Compounds per year:</label>
+            <InputNumber @bind-Value=calculator.CmpPerYear class="form-control" id="CmpPerYear" />
+			<ValidationMessage For="() => calculator.CmpPerYear" />
+		</div>
+        <!-- Submit -->
+        <input type="submit" value="Calculate" class="btn btn-success  mt-1" />
+    </EditForm>
+}
+
+@code {
+    // Vars
+    private bool isSubmitted = false;
+
+    // The Claculator Class
+    private InvestmentCalc calculator = new InvestmentCalc();
+
+    // Form Submitted
+    private void CalculateInvestment() => isSubmitted = true;
+    // Reset
+    private void Back() => isSubmitted = false;
+}
